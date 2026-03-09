@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciamento de Tarefas</title>
+<link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── reset & base ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:    #0056b3;
+    --blue-dk: #004494;
+    --blue-lt: #e8f0fb;
+    --white:   #ffffff;
+    --black:   #000000;
+    --gray-1:  #f4f6f9;
+    --gray-2:  #e2e8f0;
+    --gray-3:  #94a3b8;
+    --gray-4:  #64748b;
+    --success: #16a34a;
+    --danger:  #dc2626;
+    --warn:    #d97706;
+    --font:    'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --shadow:  0 2px 8px rgba(0,86,179,.12);
+    --radius:  8px;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--gray-1);
+    color: var(--black);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── navbar ───────────────────────────────────────────────── */
+  nav {
+    background: var(--blue);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    box-shadow: 0 2px 10px rgba(0,86,179,.35);
+  }
+  .nav-brand {
+    color: var(--white);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+  }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-links button {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,.8);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .nav-links button:hover  { background: rgba(255,255,255,.15); color: var(--white); }
+  .nav-links button.active { background: rgba(255,255,255,.25); color: var(--white); }
+
+  /* ── pages ────────────────────────────────────────────────── */
+  .page { display: none; padding: 32px 24px; }
+  .page.active { display: block; }
+
+  /* ── page header ──────────────────────────────────────────── */
+  .page-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--blue-lt);
+  }
+
+  /* ── card ─────────────────────────────────────────────────── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px 32px;
+    max-width: 520px;
+  }
+
+  /* ── form ─────────────────────────────────────────────────── */
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-4);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1.5px solid var(--gray-2);
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--black);
+    background: var(--white);
+    transition: border-color .15s, box-shadow .15s;
+    outline: none;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0,86,179,.12);
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  /* ── buttons ──────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+  }
+  .btn:hover  { filter: brightness(.9); }
+  .btn:active { transform: scale(.97); }
+
+  .btn-primary { background: var(--blue); color: var(--white); }
+  .btn-success { background: var(--success); color: var(--white); }
+  .btn-danger  { background: var(--danger);  color: var(--white); }
+  .btn-warn    { background: var(--warn);    color: var(--white); }
+  .btn-ghost   { background: var(--gray-2);  color: var(--gray-4); }
+
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+  /* ── toast ────────────────────────────────────────────────── */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--success);
+    color: var(--white);
+    padding: 14px 22px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.18);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: transform .3s, opacity .3s;
+    z-index: 9999;
+    max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.error { background: var(--danger); }
+
+  /* ── modal ────────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    width: 380px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 10px; color: var(--danger); }
+  .modal p  { font-size: 14px; color: var(--gray-4); margin-bottom: 22px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── kanban board ─────────────────────────────────────────── */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .column {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .column-header {
+    padding: 14px 18px;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .col-a-fazer  .column-header { background: #475569; }
+  .col-fazendo  .column-header { background: var(--warn); }
+  .col-pronto   .column-header { background: var(--success); }
+
+  .col-count {
+    background: rgba(255,255,255,.25);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 12px;
+  }
+
+  .column-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 80px; }
+
+  /* ── task card ────────────────────────────────────────────── */
+  .task-card {
+    background: var(--gray-1);
+    border: 1.5px solid var(--gray-2);
+    border-radius: 6px;
+    padding: 14px 16px;
+    transition: box-shadow .15s;
+  }
+  .task-card:hover { box-shadow: 0 2px 12px rgba(0,86,179,.15); }
+
+  .task-desc {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: var(--black);
+    line-height: 1.4;
+  }
+  .task-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .task-meta span { font-size: 12px; color: var(--gray-4); }
+  .task-meta strong { color: var(--black); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .badge-alta  { background: #fee2e2; color: #b91c1c; }
+  .badge-media { background: #fef3c7; color: #92400e; }
+  .badge-baixa { background: #dcfce7; color: #166534; }
+
+  .task-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .task-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--gray-2);
+    margin: 8px 0 4px;
+  }
+  .status-label { font-size: 11px; font-weight: 700; color: var(--gray-3); text-transform: uppercase; letter-spacing: .4px; width: 100%; }
+
+  .empty-col { text-align: center; color: var(--gray-3); font-size: 13px; padding: 20px 0; }
+
+  /* ── responsive ───────────────────────────────────────────── */
+  @media (max-width: 860px) {
+    .board { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAVBAR ────────────────────────────────────────────────── -->
+<nav>
+  <span class="nav-brand">Gerenciamento de Tarefas</span>
+  <div class="nav-links">
+    <button onclick="showPage('gerenciar')" id="nav-gerenciar" class="active">Gerenciar Tarefas</button>
+    <button onclick="showPage('cad-usuario')" id="nav-cad-usuario">Cadastro de Usuários</button>
+    <button onclick="showPage('cad-tarefa')" id="nav-cad-tarefa">Cadastro de Tarefas</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE: GERENCIAR TAREFAS                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-gerenciar">
+  <h1 class="page-title">Tarefas</h1>
+
+  <div class="board">
+    <!-- A FAZER -->
+    <div class="column col-a-fazer">
+      <div class="column-header">
+        A Fazer
+        <span class="col-count" id="cnt-a-fazer">0</span>
+      </div>
+      <div class="column-body" id="col-a-fazer"></div>
+    </div>
+
+    <!-- FAZENDO -->
+    <div class="column col-fazendo">
+      <div class="column-header">
+        Fazendo
+        <span class="col-count" id="cnt-fazendo">0</span>
+      </div>
+      <div class="column-body" id="col-fazendo"></div>
+    </div>
+
+    <!-- PRONTO -->
+    <div class="column col-pronto">
+      <div class="column-header">
+        Pronto
+        <span class="col-count" id="cnt-pronto">0</span>
+      </div>
+      <div class="column-body" id="col-pronto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE: CADASTRO DE USUÁRIO                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-cad-usuario">
+  <h1 class="page-title">Cadastro de Usuários</h1>
+  <div class="card">
+    <div class="form-group">
+      <label for="u-nome">Nome</label>
+      <input type="text" id="u-nome" placeholder="Nome completo" required>
+    </div>
+    <div class="form-group">
+      <label for="u-email">Email</label>
+      <input type="email" id="u-email" placeholder="usuario@empresa.com" required>
+    </div>
+    <button class="btn btn-primary" onclick="salvarUsuario()">Cadastrar</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE: CADASTRO DE TAREFA                                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-cad-tarefa">
+  <h1 class="page-title" id="titulo-cad-tarefa">Cadastro de Tarefas</h1>
+  <div class="card">
+    <input type="hidden" id="t-id">
+
+    <div class="form-group">
+      <label for="t-desc">Descrição</label>
+      <textarea id="t-desc" placeholder="Descreva a tarefa…" required></textarea>
+    </div>
+    <div class="form-group">
+      <label for="t-setor">Setor</label>
+      <input type="text" id="t-setor" placeholder="Ex.: Produção, RH, TI…" required>
+    </div>
+    <div class="form-group">
+      <label for="t-usuario">Usuário</label>
+      <select id="t-usuario" required>
+        <option value="">— selecione —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="t-prioridade">Prioridade</label>
+      <select id="t-prioridade" required>
+        <option value="">— selecione —</option>
+        <option value="baixa">Baixa</option>
+        <option value="media">Média</option>
+        <option value="alta">Alta</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" onclick="salvarTarefa()">Cadastrar</button>
+    <button class="btn btn-ghost" id="btn-cancelar-edicao" style="display:none;margin-left:8px" onclick="cancelarEdicao()">Cancelar edição</button>
+  </div>
+</div>
+
+<!-- ── MODAL CONFIRMAR EXCLUSÃO ──────────────────────────────── -->
+<div class="modal-overlay" id="modal-excluir">
+  <div class="modal">
+    <h3>Excluir tarefa?</h3>
+    <p>Essa ação não poderá ser desfeita. A tarefa será removida permanentemente.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarExclusao()">Confirmar exclusão</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ──────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- JAVASCRIPT                                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<script>
+// ── ESTADO ─────────────────────────────────────────────────
+let db = {
+  nextUserId:  4,
+  nextTarefaId: 6,
+  usuarios: [
+    { id: 1, nome: 'Ana Silva',   email: 'ana.silva@empresa.com'   },
+    { id: 2, nome: 'Carlos Lima', email: 'carlos.lima@empresa.com' },
+    { id: 3, nome: 'Maria Souza', email: 'maria.souza@empresa.com' }
+  ],
+  tarefas: [
+    { id:1, id_usuario:1, descricao:'Atualizar relatório mensal de produção',  setor:'Produção',  prioridade:'alta',  data_cadastro: new Date().toISOString(), status:'a_fazer'  },
+    { id:2, id_usuario:2, descricao:'Revisar estoque de matéria-prima',        setor:'Estoque',   prioridade:'media', data_cadastro: new Date().toISOString(), status:'fazendo'  },
+    { id:3, id_usuario:3, descricao:'Treinamento de segurança alimentar',      setor:'RH',        prioridade:'baixa', data_cadastro: new Date().toISOString(), status:'pronto'   },
+    { id:4, id_usuario:1, descricao:'Configurar novo sistema de rastreamento', setor:'TI',        prioridade:'alta',  data_cadastro: new Date().toISOString(), status:'a_fazer'  },
+    { id:5, id_usuario:2, descricao:'Auditoria de qualidade do lote 47',       setor:'Qualidade', prioridade:'media', data_cadastro: new Date().toISOString(), status:'fazendo'  }
+  ]
+};
+
+let tarefaParaExcluir = null;
+
+// ── NAVEGAÇÃO ───────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  if (id === 'gerenciar') renderBoard();
+  if (id === 'cad-tarefa') popularSelectUsuarios();
+}
+
+// ── TOAST ───────────────────────────────────────────────────
+function showToast(msg, tipo = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = tipo === 'error' ? 'error' : '';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ── MODAL ───────────────────────────────────────────────────
+function abrirModal(idTarefa) {
+  tarefaParaExcluir = idTarefa;
+  document.getElementById('modal-excluir').classList.add('open');
+}
+function fecharModal() {
+  tarefaParaExcluir = null;
+  document.getElementById('modal-excluir').classList.remove('open');
+}
+function confirmarExclusao() {
+  if (tarefaParaExcluir === null) return;
+  db.tarefas = db.tarefas.filter(t => t.id !== tarefaParaExcluir);
+  fecharModal();
+  renderBoard();
+  showToast('Tarefa excluída com sucesso.');
+}
+
+// ── USUÁRIOS ────────────────────────────────────────────────
+function salvarUsuario() {
+  const nome  = document.getElementById('u-nome').value.trim();
+  const email = document.getElementById('u-email').value.trim();
+
+  if (!nome || !email) { showToast('Preencha todos os campos.', 'error'); return; }
+  if (!validarEmail(email)) { showToast('E-mail inválido.', 'error'); return; }
+  if (db.usuarios.find(u => u.email === email)) { showToast('E-mail já cadastrado.', 'error'); return; }
+
+  db.usuarios.push({ id: db.nextUserId++, nome, email });
+  document.getElementById('u-nome').value  = '';
+  document.getElementById('u-email').value = '';
+  showToast('Cadastro concluído com sucesso');
+}
+
+function validarEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function popularSelectUsuarios() {
+  const sel = document.getElementById('t-usuario');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— selecione —</option>';
+  db.usuarios.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.id;
+    opt.textContent = u.nome;
+    if (parseInt(cur) === u.id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+// ── TAREFAS ─────────────────────────────────────────────────
+function salvarTarefa() {
+  const idEdit    = document.getElementById('t-id').value;
+  const descricao = document.getElementById('t-desc').value.trim();
+  const setor     = document.getElementById('t-setor').value.trim();
+  const id_usuario= parseInt(document.getElementById('t-usuario').value);
+  const prioridade= document.getElementById('t-prioridade').value;
+
+  if (!descricao || !setor || !id_usuario || !prioridade) {
+    showToast('Preencha todos os campos.', 'error'); return;
+  }
+
+  if (idEdit) {
+    // EDIÇÃO
+    const idx = db.tarefas.findIndex(t => t.id === parseInt(idEdit));
+    if (idx !== -1) {
+      db.tarefas[idx] = { ...db.tarefas[idx], descricao, setor, id_usuario, prioridade };
+    }
+    showToast('Tarefa atualizada com sucesso.');
+    cancelarEdicao();
+  } else {
+    // NOVO
+    db.tarefas.push({
+      id: db.nextTarefaId++,
+      id_usuario, descricao, setor, prioridade,
+      data_cadastro: new Date().toISOString(),
+      status: 'a_fazer'
+    });
+    document.getElementById('t-desc').value      = '';
+    document.getElementById('t-setor').value     = '';
+    document.getElementById('t-usuario').value   = '';
+    document.getElementById('t-prioridade').value= '';
+    showToast('Cadastro concluído com sucesso');
+  }
+}
+
+function editarTarefa(idTarefa) {
+  const t = db.tarefas.find(t => t.id === idTarefa);
+  if (!t) return;
+
+  popularSelectUsuarios();
+  document.getElementById('t-id').value            = t.id;
+  document.getElementById('t-desc').value          = t.descricao;
+  document.getElementById('t-setor').value         = t.setor;
+  document.getElementById('t-usuario').value       = t.id_usuario;
+  document.getElementById('t-prioridade').value    = t.prioridade;
+  document.getElementById('titulo-cad-tarefa').textContent = 'Editar Tarefa';
+  document.getElementById('btn-cancelar-edicao').style.display = 'inline-flex';
+
+  showPage('cad-tarefa');
+}
+
+function cancelarEdicao() {
+  document.getElementById('t-id').value            = '';
+  document.getElementById('t-desc').value          = '';
+  document.getElementById('t-setor').value         = '';
+  document.getElementById('t-usuario').value       = '';
+  document.getElementById('t-prioridade').value    = '';
+  document.getElementById('titulo-cad-tarefa').textContent = 'Cadastro de Tarefas';
+  document.getElementById('btn-cancelar-edicao').style.display = 'none';
+}
+
+function atualizarStatus(idTarefa, novoStatus) {
+  const t = db.tarefas.find(t => t.id === idTarefa);
+  if (t) { t.status = novoStatus; renderBoard(); }
+}
+
+// ── RENDER BOARD ────────────────────────────────────────────
+function nomeUsuario(id_usuario) {
+  const u = db.usuarios.find(u => u.id === id_usuario);
+  return u ? u.nome : '—';
+}
+
+function prioridadeLabel(p) {
+  return { baixa: 'Baixa', media: 'Média', alta: 'Alta' }[p] || p;
+}
+
+function buildCard(t) {
+  const outros = { a_fazer:['fazendo','pronto'], fazendo:['a_fazer','pronto'], pronto:['a_fazer','fazendo'] }[t.status];
+  const statusLabel = { a_fazer:'A fazer', fazendo:'Fazendo', pronto:'Pronto' };
+
+  return `
+  <div class="task-card" id="task-${t.id}">
+    <div class="task-desc">${escHtml(t.descricao)}</div>
+    <div class="task-meta">
+      <span><strong>Setor:</strong> ${escHtml(t.setor)}</span>
+      <span><strong>Prioridade:</strong> <span class="badge badge-${t.prioridade}">${prioridadeLabel(t.prioridade)}</span></span>
+      <span><strong>Vinculado a:</strong> ${escHtml(nomeUsuario(t.id_usuario))}</span>
+      <span><strong>Status:</strong> ${statusLabel[t.status]}</span>
+    </div>
+    <div class="task-actions">
+      <button class="btn btn-warn btn-sm" onclick="editarTarefa(${t.id})">✏ Editar</button>
+      <button class="btn btn-danger btn-sm" onclick="abrirModal(${t.id})">🗑 Excluir</button>
+      <div class="task-divider"></div>
+      <span class="status-label">Alterar status:</span>
+      ${outros.map(s => `<button class="btn btn-ghost btn-sm" onclick="atualizarStatus(${t.id},'${s}')">${statusLabel[s]}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderBoard() {
+  const cols = { a_fazer:[], fazendo:[], pronto:[] };
+  db.tarefas.forEach(t => cols[t.status].push(t));
+
+  ['a_fazer','fazendo','pronto'].forEach(s => {
+    const el = document.getElementById('col-' + s.replace('_','-'));
+    const cnt = document.getElementById('cnt-' + s.replace('_','-'));
+    el.innerHTML = cols[s].length
+      ? cols[s].map(buildCard).join('')
+      : '<div class="empty-col">Nenhuma tarefa</div>';
+    cnt.textContent = cols[s].length;
+  });
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── INIT ────────────────────────────────────────────────────
+renderBoard();
+</script>
+</body>
+</html>
